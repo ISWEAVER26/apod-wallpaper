@@ -3,6 +3,6 @@
 
 struct Apod{
     std::string date;
-    std::string url;
-    std::string mediaType;
+    std::string hdurl;
+    std::string media_type;
 };

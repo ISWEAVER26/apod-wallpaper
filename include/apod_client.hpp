@@ -5,7 +5,7 @@
 class ApodClient
 {
  
-public:
-    void getApod();
+    public:
+        Apod getApod();
+        int imgWrite(Apod apod);
 };
-
