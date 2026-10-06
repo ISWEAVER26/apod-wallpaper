@@ -9,6 +9,7 @@
 #include <fstream> 
 #include <pwd.h>
 #include <unistd.h>
+#include <gio/gio.h>
 
 // Write from buffer to file
 size_t imgWriteback(char* buffp, size_t datasize, size_t itemct, void* userp) {
@@ -72,15 +73,44 @@ Apod ApodClient::getApod(){
 };
 
 // Write from apod struct to file
-int ApodClient::imgWrite(Apod apod){
+std::string ApodClient::imgWrite(Apod apod){
+    // build path
+    std::string homedir = getpwuid(getuid())->pw_dir;
+    std::string path = homedir + "/.local/share/apod-wallpaper/";  
+    std::filesystem::create_directories(path);
     std::string filename = apod.date + ".jpeg";
-    std::ofstream fp(filename, std::ios::binary);
-    curl_global_init(CURL_GLOBAL_ALL);
-    CURL *handle = curl_easy_init();
-    curl_easy_setopt(handle, CURLOPT_URL, apod.hdurl.c_str());
-    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, imgWriteback);
-    curl_easy_setopt(handle, CURLOPT_WRITEDATA, &fp);
-    curl_easy_perform(handle);
-    curl_easy_cleanup(handle);
+    std::string filepath = path + filename;
+
+    // check file hasn't been created
+    if(!std::filesystem::exists(filepath)){
+        // create binary
+        std::ofstream fp(filepath, std::ios::binary);
+        curl_global_init(CURL_GLOBAL_ALL);
+        CURL *handle = curl_easy_init();
+        curl_easy_setopt(handle, CURLOPT_URL, apod.hdurl.c_str());
+        curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, imgWriteback);
+        curl_easy_setopt(handle, CURLOPT_WRITEDATA, &fp);
+        curl_easy_perform(handle);
+        curl_easy_cleanup(handle);
+    } 
+
+    return filepath;
+}
+
+int ApodClient::setWallpaper(std::string filepath){
+    GSettings *gsetting = g_settings_new("org.gnome.desktop.background");
+
+    const char* key = "picture-uri";
+    const char* keydark = "picture-uri-dark";
+
+    std::string fileuri = "file://" + filepath;
+
+    gboolean light = g_settings_set_string(gsetting, key, fileuri.c_str());
+    gboolean dark = g_settings_set_string(gsetting, keydark, fileuri.c_str());
+
+    g_settings_sync();
+
+    g_object_unref(gsetting);
+
     return 0;
 }

@@ -6,9 +6,9 @@
 int main(){
 
     ApodClient client;
-
+    
     Apod apod = client.getApod();
-    client.imgWrite(apod);
-
+    std::string filepath = client.imgWrite(apod);
+    client.setWallpaper(filepath);
     return 0;
 };

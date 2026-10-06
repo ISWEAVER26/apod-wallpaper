@@ -7,5 +7,6 @@ class ApodClient
  
     public:
         Apod getApod();
-        int imgWrite(Apod apod);
+        std::string imgWrite(Apod apod);
+        int setWallpaper(std::string filepath);
 };
