@@ -10,6 +10,7 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <gio/gio.h>
+#include <thread>
 
 // Write from buffer to file
 size_t imgWriteback(char* buffp, size_t datasize, size_t itemct, void* userp) {
@@ -56,7 +57,20 @@ Apod ApodClient::getApod(){
     curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, clientWriteback);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, &response);
-    curl_easy_perform(handle);
+    curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, 5L);
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT, 300L);
+
+    // Retry curl until connection is made
+    CURLcode curlresponse = CURLE_FAILED_INIT;
+    std::chrono::milliseconds delay{1000};
+    while(curlresponse){
+        curlresponse = curl_easy_perform(handle);
+        if(curlresponse){
+            std::this_thread::sleep_for(delay);
+            delay *=2;
+        }
+    };
+
     curl_easy_cleanup(handle);
 
     // Parse libcurl response
