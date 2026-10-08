@@ -12,6 +12,23 @@
 #include <gio/gio.h>
 #include <thread>
 
+// Parse config file
+nlohmann::json ApodClient::parseConf(){
+    std::string filePath = "./config.json";
+    std::ifstream file(filePath);
+
+    std::string line;
+    std::string configtxt;
+    while(getline(file, line)){
+        configtxt += line;
+    };
+
+    file.close(); 
+    
+    nlohmann::json j = nlohmann::json::parse(configtxt);
+    return j;
+};
+
 // Write from buffer to file
 size_t imgWriteback(char* buffp, size_t datasize, size_t itemct, void* userp) {
     std::ofstream* response = static_cast<std::ofstream*>(userp);
@@ -87,12 +104,18 @@ Apod ApodClient::getApod(){
 };
 
 // Write from apod struct to file
-std::string ApodClient::imgWrite(Apod apod){
+std::string ApodClient::imgWrite(Apod apod, std::string savemode){
+
     // build path
     std::string homedir = getpwuid(getuid())->pw_dir;
     std::string path = homedir + "/.local/share/apod-wallpaper/";  
     std::filesystem::create_directories(path);
-    std::string filename = apod.date + ".jpeg";
+    std::string filename;
+    if (savemode == "replace"){
+        filename = "apod_wallpaper.jpeg";
+    } else if (savemode == "append"){
+        filename = apod.date + ".jpeg";
+    }
     std::string filepath = path + filename;
 
     // check file hasn't been created
@@ -111,6 +134,7 @@ std::string ApodClient::imgWrite(Apod apod){
     return filepath;
 }
 
+// Set wallpaper
 int ApodClient::setWallpaper(std::string filepath){
     GSettings *gsetting = g_settings_new("org.gnome.desktop.background");
 
