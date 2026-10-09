@@ -17,6 +17,11 @@ nlohmann::json ApodClient::parseConf(){
     std::string filePath = "./config.json";
     std::ifstream file(filePath);
 
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " + filePath << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
     std::string line;
     std::string configtxt;
     while(getline(file, line)){
@@ -127,7 +132,19 @@ std::string ApodClient::imgWrite(Apod apod, std::string savemode){
         curl_easy_setopt(handle, CURLOPT_URL, apod.hdurl.c_str());
         curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, imgWriteback);
         curl_easy_setopt(handle, CURLOPT_WRITEDATA, &fp);
-        curl_easy_perform(handle);
+        curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, 5L);
+        curl_easy_setopt(handle, CURLOPT_TIMEOUT, 300L);
+
+        // Retry curl until connection is made
+        CURLcode curlresponse = CURLE_FAILED_INIT;
+        std::chrono::milliseconds delay{1000};
+        while(curlresponse){
+            curlresponse = curl_easy_perform(handle);
+            if(curlresponse){
+                std::this_thread::sleep_for(delay);
+                delay *=2;
+            }
+        };
         curl_easy_cleanup(handle);
     } 
 
