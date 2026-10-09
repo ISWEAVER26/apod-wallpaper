@@ -18,6 +18,7 @@ pkg_check_modules(GLIB REQUIRED IMPORTED_TARGET
 add_executable(nasa_apod
     src/main.cpp
     src/apod_client.cpp
+    src/config_handler.cpp
 )
 
 target_include_directories(nasa_apod PRIVATE
@@ -29,3 +30,30 @@ target_link_libraries(nasa_apod PRIVATE
     nlohmann_json::nlohmann_json
     PkgConfig::GLIB
 )
+
+install(TARGETS nasa_apod
+    DESTINATION "$ENV{HOME}/.local/bin"
+)
+
+set(config_folder "$ENV{HOME}/.config/")
+file (MAKE_DIRECTORY "${config_folder}/apod_wallpaper")
+
+set(config_contents "
+{
+    \"save_mode\":\"append\"
+}
+")
+
+set(autostart_contents "
+    [Desktop Entry]
+    Type=Application
+    Name=apod wallpaper
+    Exec=nasa_apod
+    Hidden=false
+    NoDisplay=false
+    X-GNOME-Autostart-enabled=true
+")
+
+file(WRITE "${config_folder}/apod_wallpaper/config.json" "${config_contents}")
+
+file(WRITE "${config_folder}/autostart/apod_wallpaper.desktop" "${autostart_contents}")
