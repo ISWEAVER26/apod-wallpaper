@@ -10,6 +10,29 @@
 #include <pwd.h>
 #include <unistd.h>
 #include <gio/gio.h>
+#include <thread>
+
+// Parse config file
+nlohmann::json ApodClient::parseConf(){
+    std::string filePath = "./config.json";
+    std::ifstream file(filePath);
+
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " + filePath << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
+
+    std::string line;
+    std::string configtxt;
+    while(getline(file, line)){
+        configtxt += line;
+    };
+
+    file.close(); 
+    
+    nlohmann::json j = nlohmann::json::parse(configtxt);
+    return j;
+};
 
 // Write from buffer to file
 size_t imgWriteback(char* buffp, size_t datasize, size_t itemct, void* userp) {
@@ -56,7 +79,20 @@ Apod ApodClient::getApod(){
     curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, clientWriteback);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, &response);
-    curl_easy_perform(handle);
+    curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, 5L);
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT, 300L);
+
+    // Retry curl until connection is made
+    CURLcode curlresponse = CURLE_FAILED_INIT;
+    std::chrono::milliseconds delay{1000};
+    while(curlresponse){
+        curlresponse = curl_easy_perform(handle);
+        if(curlresponse){
+            std::this_thread::sleep_for(delay);
+            delay *=2;
+        }
+    };
+
     curl_easy_cleanup(handle);
 
     // Parse libcurl response
@@ -73,12 +109,18 @@ Apod ApodClient::getApod(){
 };
 
 // Write from apod struct to file
-std::string ApodClient::imgWrite(Apod apod){
+std::string ApodClient::imgWrite(Apod apod, std::string savemode){
+
     // build path
     std::string homedir = getpwuid(getuid())->pw_dir;
     std::string path = homedir + "/.local/share/apod-wallpaper/";  
     std::filesystem::create_directories(path);
-    std::string filename = apod.date + ".jpeg";
+    std::string filename;
+    if (savemode == "replace"){
+        filename = "apod_wallpaper.jpeg";
+    } else if (savemode == "append"){
+        filename = apod.date + ".jpeg";
+    }
     std::string filepath = path + filename;
 
     // check file hasn't been created
@@ -90,13 +132,26 @@ std::string ApodClient::imgWrite(Apod apod){
         curl_easy_setopt(handle, CURLOPT_URL, apod.hdurl.c_str());
         curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, imgWriteback);
         curl_easy_setopt(handle, CURLOPT_WRITEDATA, &fp);
-        curl_easy_perform(handle);
+        curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT, 5L);
+        curl_easy_setopt(handle, CURLOPT_TIMEOUT, 300L);
+
+        // Retry curl until connection is made
+        CURLcode curlresponse = CURLE_FAILED_INIT;
+        std::chrono::milliseconds delay{1000};
+        while(curlresponse){
+            curlresponse = curl_easy_perform(handle);
+            if(curlresponse){
+                std::this_thread::sleep_for(delay);
+                delay *=2;
+            }
+        };
         curl_easy_cleanup(handle);
     } 
 
     return filepath;
 }
 
+// Set wallpaper
 int ApodClient::setWallpaper(std::string filepath){
     GSettings *gsetting = g_settings_new("org.gnome.desktop.background");
 
