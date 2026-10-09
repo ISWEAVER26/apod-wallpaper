@@ -12,28 +12,6 @@
 #include <gio/gio.h>
 #include <thread>
 
-// Parse config file
-nlohmann::json ApodClient::parseConf(){
-    std::string filePath = "./config.json";
-    std::ifstream file(filePath);
-
-    if (!file.is_open()) {
-        std::cerr << "Error opening file: " + filePath << std::endl;
-        std::exit(EXIT_FAILURE);
-    }
-
-    std::string line;
-    std::string configtxt;
-    while(getline(file, line)){
-        configtxt += line;
-    };
-
-    file.close(); 
-    
-    nlohmann::json j = nlohmann::json::parse(configtxt);
-    return j;
-};
-
 // Write from buffer to file
 size_t imgWriteback(char* buffp, size_t datasize, size_t itemct, void* userp) {
     std::ofstream* response = static_cast<std::ofstream*>(userp);
@@ -73,7 +51,7 @@ Apod ApodClient::getApod(){
     std::string url = "https://science.nasa.gov/wp-json/wp/v2/apod-basic/" 
                       + year.substr(2,2) + month + day;    
     
-    // Handle libcurl
+    // Handle libcurl 
     curl_global_init(CURL_GLOBAL_ALL);
     CURL *handle = curl_easy_init();
     curl_easy_setopt(handle, CURLOPT_URL, url.c_str());
