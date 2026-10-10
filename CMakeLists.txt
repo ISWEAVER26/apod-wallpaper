@@ -44,14 +44,13 @@ set(config_contents "
 }
 ")
 
-set(autostart_contents "
-    [Desktop Entry]
-    Type=Application
-    Name=apod wallpaper
-    Exec=nasa_apod
-    Hidden=false
-    NoDisplay=false
-    X-GNOME-Autostart-enabled=true
+set(autostart_contents "[Desktop Entry]
+Type=Application
+Name=apod wallpaper
+Exec=$ENV{HOME}/.local/bin/nasa_apod
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
 ")
 
 file(WRITE "${config_folder}/apod_wallpaper/config.json" "${config_contents}")
