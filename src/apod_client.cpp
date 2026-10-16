@@ -83,6 +83,10 @@ Apod ApodClient::getApod(){
         .media_type = j["media_type"]
     };
     
+    if (j["media_type"] == "video"){
+        std::cerr << "Media type not supported, restoring yesterday's wallpaper..." << std::endl;
+        std::exit(EXIT_FAILURE);
+    }
     return apod;
 };
 

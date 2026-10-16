@@ -51,6 +51,7 @@ Exec=$ENV{HOME}/.local/bin/nasa_apod
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
+Terminal=true
 ")
 
 file(WRITE "${config_folder}/apod_wallpaper/config.json" "${config_contents}")
