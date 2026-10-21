@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <gio/gio.h>
 #include <thread>
+#include <regex>
 
 // Write from buffer to file
 size_t imgWriteback(char* buffp, size_t datasize, size_t itemct, void* userp) {
@@ -62,12 +63,24 @@ Apod ApodClient::getApod(){
 
     // Retry curl until connection is made
     CURLcode curlresponse = CURLE_FAILED_INIT;
-    std::chrono::milliseconds delay{1000};
+    std::chrono::seconds delay{10};
+    std::cout << "[INFO] Opening APOD request for " 
+              << day 
+              << "/" 
+              << month 
+              << "/" 
+              << year 
+    << std::endl;
     while(curlresponse){
         curlresponse = curl_easy_perform(handle);
         if(curlresponse){
+            std::cout << "[ERROR] Connection failed, retrying in " 
+                      << delay
+            << std::endl;
             std::this_thread::sleep_for(delay);
             delay *=2;
+        } else {
+            std::cout << "[INFO] APOD found!" << std::endl;
         }
     };
 
@@ -76,11 +89,18 @@ Apod ApodClient::getApod(){
     // Parse libcurl response
     nlohmann::json j = nlohmann::json::parse(response);
     
+    // Regex to remove html from descripttion
+    std::regex pattern(R"(<.*?>)");
+    std::string rawExplanation = j["explanation"];
+    std::string explanation = std::regex_replace(rawExplanation, pattern, "");
+
     // return Apod 
     Apod apod{
         .date = j["date"],
         .hdurl = j["hdurl"],
-        .media_type = j["media_type"]
+        .media_type = j["media_type"],
+        .title = j["title"],
+        .explanation = explanation
     };
     
     if (j["media_type"] == "video"){

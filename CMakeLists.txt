@@ -19,6 +19,7 @@ add_executable(nasa_apod
     src/main.cpp
     src/apod_client.cpp
     src/config_handler.cpp
+    src/terminal_output.cpp
 )
 
 target_include_directories(nasa_apod PRIVATE
@@ -44,14 +45,24 @@ set(config_contents "
 }
 ")
 
+find_program(ALACRITTY alacritty)
+
+if(ALACRITTY)
+    set(CUSTOM_TERMINAL "alacritty --hold -e")
+    set(DEFAULT_TERMINAL "false")
+else()
+    set(CUSTOM_TERMINAL "")
+    set(DEFAULT_TERMINAL "true")
+endif()
+
 set(autostart_contents "[Desktop Entry]
 Type=Application
 Name=apod wallpaper
-Exec=$ENV{HOME}/.local/bin/nasa_apod
+Exec=${CUSTOM_TERMINAL} $ENV{HOME}/.local/bin/nasa_apod
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Terminal=true
+Terminal=${DEFAULT_TERMINAL}
 ")
 
 file(WRITE "${config_folder}/apod_wallpaper/config.json" "${config_contents}")
